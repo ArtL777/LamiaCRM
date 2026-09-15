@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель — LamiaCRM</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+    <header id="navbar"></header>
+
+    <main class="page page-wide">
+        <h1 class="page-title">Админ-панель</h1>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="home">Главная страница</button>
+            <button class="tab-btn" data-tab="interactive">Интерактив</button>
+            <button class="tab-btn" data-tab="users">Пользователи</button>
+        </div>
+
+        <div class="alert alert-error" id="error-box"></div>
+        <div class="alert alert-success" id="success-box"></div>
+
+        <section class="tab-panel active" id="tab-home">
+            <a href="/" class="back-link">&larr; Перейти на главную страницу</a>
+
+            <div class="card">
+                <form id="home-title-form">
+                    <div class="form-group">
+                        <label for="title">Заголовок</label>
+                        <input type="text" id="title" name="title" placeholder="Название главной страницы">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Сохранить заголовок</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <label class="media-section-label">Содержимое страницы — текст и медиа можно чередовать в любом порядке, как в блоге</label>
+                <div id="blocks-list" class="blocks-list"></div>
+
+                <div class="block-add-row">
+                    <button type="button" class="btn btn-outline" id="add-text-block-btn">+ Текстовый блок</button>
+                    <label class="btn btn-outline file-btn">
+                        + Медиа (до 10 файлов)
+                        <input type="file" id="media-input" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" multiple hidden>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <section class="tab-panel" id="tab-interactive">
+            <div class="card">
+                <label class="media-section-label">Новая кнопка</label>
+                <form id="new-button-form">
+                    <div class="form-group">
+                        <label for="new-button-title">Название кнопки</label>
+                        <input type="text" id="new-button-title" name="title" placeholder="Например: О компании" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-button-description">Описание</label>
+                        <textarea id="new-button-description" name="description" placeholder="Текст, который увидит пользователь при открытии кнопки"></textarea>
+                    </div>
+                    <p class="form-hint">Медиафайлы можно будет добавить сразу после создания кнопки, ниже в списке.</p>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Добавить кнопку</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <label class="media-section-label">Существующие кнопки</label>
+                <div id="interactive-buttons-list" class="blocks-list"></div>
+            </div>
+        </section>
+
+        <section class="tab-panel" id="tab-users">
+            <div class="card">
+                <h2 class="section-subtitle">Администраторы</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Логин</th>
+                            <th>Почта</th>
+                            <th>Дата регистрации</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admins-table-body">
+                        <tr><td colspan="3" class="muted">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h2 class="section-subtitle">Пользователи</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Логин</th>
+                            <th>Почта</th>
+                            <th>Дата регистрации</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <tr><td colspan="3" class="muted">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/nav.js"></script>
+    <script src="/assets/js/lightbox.js"></script>
+    <script src="/assets/js/hotspot-editor.js"></script>
+    <script src="/assets/js/admin.js"></script>
+</body>
+</html>

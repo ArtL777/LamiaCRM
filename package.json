@@ -1,0 +1,28 @@
+{
+  "name": "lamiacrm",
+  "version": "1.0.0",
+  "description": "LamiaCRM - CRM-система",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "db:init": "node backend/src/db/init.js",
+    "db:seed": "node backend/src/db/seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "connect-pg-simple": "^10.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "express-session": "^1.18.0",
+    "multer": "^2.0.1",
+    "pg": "^8.11.5",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
