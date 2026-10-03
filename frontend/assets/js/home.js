@@ -39,10 +39,25 @@
             cluster = [];
         }
 
+        function renderColumnsHtml(block) {
+            const columns = block.columns.map((col) => {
+                const media = !col.mediaUrl ? '' : `
+                    <div class="home-block-media" data-url="${col.mediaUrl}" data-type="${col.mediaType}">
+                        ${col.mediaType === 'video' ? `<video src="${col.mediaUrl}" controls></video>` : `<img src="${col.mediaUrl}" alt="">`}
+                    </div>`;
+                const text = col.text ? `<p class="home-block-text">${escapeHtml(col.text)}</p>` : '';
+                return `<div class="home-column">${media}${text}</div>`;
+            }).join('');
+            return `<div class="home-columns">${columns}</div>`;
+        }
+
         blocks.forEach((block) => {
             if (block.type === 'text') {
                 flushCluster();
                 pieces.push(`<p class="home-block-text">${escapeHtml(block.content)}</p>`);
+            } else if (block.type === 'columns') {
+                flushCluster();
+                pieces.push(renderColumnsHtml(block));
             } else {
                 cluster.push(block);
             }

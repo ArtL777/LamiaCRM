@@ -545,11 +545,12 @@ input[type="file"]::file-selector-button:hover {
     animation: fadeInUp 0.4s var(--ease) both;
 }
 
+/* Медиа никогда не обрезается: показывается целиком в своих пропорциях. */
 .home-block-media img,
 .home-block-media video {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
+    object-fit: contain;
     display: block;
 }
 
@@ -568,33 +569,40 @@ input[type="file"]::file-selector-button:hover {
 .media-cluster {
     display: grid;
     gap: 10px;
+    align-items: start;
 }
 
+/* Одиночное медиа и пары/тройки показываются в натуральных пропорциях. */
 .media-cluster-1 {
-    grid-template-columns: 1fr;
-    max-width: 620px;
-    margin: 0 auto;
+    display: flex;
+    justify-content: center;
 }
 
 .media-cluster-1 .home-block-media {
-    aspect-ratio: 16 / 10;
-    max-height: 420px;
+    width: fit-content;
+    max-width: 100%;
+}
+
+.media-cluster-1 .home-block-media img,
+.media-cluster-1 .home-block-media video {
+    width: auto;
+    max-width: 100%;
+    max-height: 560px;
 }
 
 .media-cluster-2 {
     grid-template-columns: repeat(2, 1fr);
 }
 
-.media-cluster-2 .home-block-media {
-    aspect-ratio: 1 / 1;
-}
-
 .media-cluster-3 {
     grid-template-columns: repeat(3, 1fr);
 }
 
-.media-cluster-3 .home-block-media {
-    aspect-ratio: 3 / 4;
+.media-cluster-2 .home-block-media img,
+.media-cluster-2 .home-block-media video,
+.media-cluster-3 .home-block-media img,
+.media-cluster-3 .home-block-media video {
+    max-height: 420px;
 }
 
 /* auto-fit (не auto-fill!) схлопывает незаполненные треки до 0, поэтому
@@ -617,10 +625,44 @@ input[type="file"]::file-selector-button:hover {
     max-height: 150px;
 }
 
+.media-cluster-4 .home-block-media img,
+.media-cluster-4 .home-block-media video,
+.media-cluster-7 .home-block-media img,
+.media-cluster-7 .home-block-media video {
+    height: 100%;
+}
+
 @media (max-width: 640px) {
     .media-cluster-2,
     .media-cluster-3 {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ---------- Блок «два столбца» ---------- */
+
+.home-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    align-items: start;
+}
+
+.home-column {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.home-column .home-block-media img,
+.home-column .home-block-media video {
+    max-height: 480px;
+}
+
+@media (max-width: 640px) {
+    .home-columns {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -893,7 +935,49 @@ input[type="file"]::file-selector-button:hover {
 .block-media-preview video {
     width: 100%;
     max-height: 220px;
-    object-fit: cover;
+    object-fit: contain;
+    display: block;
+}
+
+.block-columns-editor {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.block-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.block-column-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--primary-2);
+}
+
+.block-column .block-media-preview {
+    max-width: 100%;
+}
+
+.block-column .block-text-input {
+    margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+    .block-columns-editor {
+        grid-template-columns: 1fr;
+    }
 }
 
 .block-media-preview img {

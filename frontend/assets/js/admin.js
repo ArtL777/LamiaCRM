@@ -81,6 +81,43 @@
                 `;
             }
 
+            if (block.type === 'columns') {
+                const columnsHtml = block.columns.map((col, i) => {
+                    const media = col.mediaUrl
+                        ? `
+                            <div class="block-media-preview" data-url="${col.mediaUrl}" data-type="${col.mediaType}">
+                                ${col.mediaType === 'video' ? `<video src="${col.mediaUrl}" controls></video>` : `<img src="${col.mediaUrl}" alt="">`}
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm column-media-remove-btn" data-id="${block.id}" data-col="${i}">Убрать медиа</button>`
+                        : '<p class="muted">Медиа не добавлено</p>';
+                    return `
+                        <div class="block-column">
+                            <div class="block-column-label">${i === 0 ? 'Левый столбец' : 'Правый столбец'}</div>
+                            ${media}
+                            <label class="btn btn-outline btn-sm file-btn">
+                                ${col.mediaUrl ? 'Заменить медиа' : '+ Добавить медиа'}
+                                <input type="file" class="column-media-input" data-id="${block.id}" data-col="${i}" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" hidden>
+                            </label>
+                            <textarea class="block-text-input column-text-input" data-id="${block.id}" data-col="${i}" placeholder="Текст под медиа (необязательно)">${escapeHtml(col.text)}</textarea>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="block-item" data-id="${block.id}">
+                        <div class="block-item-header">
+                            <span class="block-type-badge">Два столбца</span>
+                            <div class="block-item-actions">
+                                ${moveButtons}
+                                <button type="button" class="block-remove-btn" data-id="${block.id}" aria-label="Удалить блок">&times;</button>
+                            </div>
+                        </div>
+                        <div class="block-columns-editor">${columnsHtml}</div>
+                        <button type="button" class="btn btn-outline btn-sm column-save-btn" data-id="${block.id}">Сохранить тексты</button>
+                    </div>
+                `;
+            }
+
             const media = block.type === 'video'
                 ? `<video src="${block.content}" controls></video>`
                 : `<img src="${block.content}" alt="" data-lightbox="1">`;
@@ -108,12 +145,74 @@
         blocksList.querySelectorAll('.block-save-text-btn').forEach((btn) => {
             btn.addEventListener('click', () => saveTextBlock(btn.dataset.id));
         });
+        blocksList.querySelectorAll('.column-save-btn').forEach((btn) => {
+            btn.addEventListener('click', () => saveColumnTexts(btn.dataset.id));
+        });
+        blocksList.querySelectorAll('.column-media-input').forEach((input) => {
+            input.addEventListener('change', () => uploadColumnMedia(input.dataset.id, input.dataset.col, input));
+        });
+        blocksList.querySelectorAll('.column-media-remove-btn').forEach((btn) => {
+            btn.addEventListener('click', () => removeColumnMedia(btn.dataset.id, btn.dataset.col));
+        });
         blocksList.querySelectorAll('.block-media-preview img').forEach((img) => {
             img.addEventListener('click', () => {
                 const tile = img.closest('.block-media-preview');
                 window.openLightbox(tile.dataset.url, tile.dataset.type);
             });
         });
+    }
+
+    function readColumnTexts(id) {
+        return Array.from(blocksList.querySelectorAll(`.column-text-input[data-id="${id}"]`))
+            .sort((a, b) => a.dataset.col - b.dataset.col)
+            .map((textarea) => textarea.value);
+    }
+
+    function putColumnTexts(id) {
+        return apiFetch(`/api/home/blocks/${id}/columns`, {
+            method: 'PUT',
+            body: JSON.stringify({ texts: readColumnTexts(id) }),
+        });
+    }
+
+    async function saveColumnTexts(id) {
+        try {
+            const { blocks } = await putColumnTexts(id);
+            renderBlocks(blocks);
+            showSuccess('Тексты столбцов сохранены');
+        } catch (err) {
+            showError(err.message);
+        }
+    }
+
+    // Перед работой с медиа сохраняем набранный текст: после загрузки
+    // список блоков перерисовывается, и несохранённое пропало бы.
+    async function uploadColumnMedia(id, col, input) {
+        if (!input.files || input.files.length === 0) return;
+
+        const formData = new FormData();
+        formData.append('media', input.files[0]);
+        try {
+            await putColumnTexts(id);
+            const { blocks } = await apiFetch(`/api/home/blocks/${id}/columns/${col}/media`, { method: 'POST', body: formData });
+            renderBlocks(blocks);
+            showSuccess('Медиафайл добавлен');
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            input.value = '';
+        }
+    }
+
+    async function removeColumnMedia(id, col) {
+        try {
+            await putColumnTexts(id);
+            const { blocks } = await apiFetch(`/api/home/blocks/${id}/columns/${col}/media`, { method: 'DELETE' });
+            renderBlocks(blocks);
+            showSuccess('Медиафайл убран');
+        } catch (err) {
+            showError(err.message);
+        }
     }
 
     async function loadHome() {
@@ -168,6 +267,15 @@
                 method: 'POST',
                 body: JSON.stringify({ content: 'Новый текстовый блок' }),
             });
+            renderBlocks(blocks);
+        } catch (err) {
+            showError(err.message);
+        }
+    });
+
+    document.getElementById('add-columns-block-btn').addEventListener('click', async () => {
+        try {
+            const { blocks } = await apiFetch('/api/home/blocks/columns', { method: 'POST' });
             renderBlocks(blocks);
         } catch (err) {
             showError(err.message);

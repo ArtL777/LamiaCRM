@@ -22,11 +22,16 @@ CREATE TABLE IF NOT EXISTS home_content (
 -- заданном полем position, — как в обычном посте блога.
 CREATE TABLE IF NOT EXISTS home_blocks (
     id         SERIAL PRIMARY KEY,
-    type       VARCHAR(10) NOT NULL CHECK (type IN ('text', 'image', 'video')),
+    type       VARCHAR(10) NOT NULL CHECK (type IN ('text', 'image', 'video', 'columns')),
     content    TEXT NOT NULL,
     position   INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Для баз, созданных до появления блока «два столбца» (type = 'columns'):
+-- CREATE TABLE IF NOT EXISTS выше существующую таблицу не меняет.
+ALTER TABLE home_blocks DROP CONSTRAINT IF EXISTS home_blocks_type_check;
+ALTER TABLE home_blocks ADD CONSTRAINT home_blocks_type_check CHECK (type IN ('text', 'image', 'video', 'columns'));
 
 -- Кнопки раздела «Интерактив»: у каждой есть название и описание;
 -- порядок отображения задаётся полем position.

@@ -7,9 +7,40 @@ const { upload, saveMediaFile, UPLOAD_DIR, MAX_FILES } = require('../utils/uploa
 
 const router = express.Router();
 
+const emptyColumn = () => ({ text: '', mediaUrl: null, mediaType: null });
+
+// Блок «два столбца» хранит в content JSON: в каждом столбце необязательное
+// медиа и необязательный текст под ним.
+function parseColumns(content) {
+    let columns = [];
+    try {
+        columns = JSON.parse(content).columns || [];
+    } catch (e) {
+        columns = [];
+    }
+    return [0, 1].map((i) => ({ ...emptyColumn(), ...columns[i] }));
+}
+
 async function getBlocks() {
     const result = await pool.query('SELECT id, type, content, position FROM home_blocks ORDER BY position ASC, id ASC');
-    return result.rows;
+    return result.rows.map((row) => (row.type === 'columns'
+        ? { id: row.id, type: row.type, position: row.position, columns: parseColumns(row.content) }
+        : row));
+}
+
+async function loadColumnsBlock(id) {
+    const result = await pool.query("SELECT id, content FROM home_blocks WHERE id = $1 AND type = 'columns'", [id]);
+    return result.rows[0] ? { id: result.rows[0].id, columns: parseColumns(result.rows[0].content) } : null;
+}
+
+function saveColumns(id, columns) {
+    return pool.query('UPDATE home_blocks SET content = $1 WHERE id = $2', [JSON.stringify({ columns }), id]);
+}
+
+function removeUploadedFile(url) {
+    if (url) {
+        fs.unlink(path.join(UPLOAD_DIR, path.basename(url)), () => {});
+    }
 }
 
 async function nextPosition() {
@@ -101,6 +132,82 @@ router.post('/blocks/media', requireAdmin, upload.array('media', MAX_FILES), asy
     }
 });
 
+router.post('/blocks/columns', requireAdmin, async (req, res) => {
+    try {
+        const position = await nextPosition();
+        await pool.query(
+            'INSERT INTO home_blocks (type, content, position) VALUES ($1, $2, $3)',
+            ['columns', JSON.stringify({ columns: [emptyColumn(), emptyColumn()] }), position]
+        );
+        res.status(201).json({ blocks: await getBlocks() });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера при добавлении блока «Два столбца»' });
+    }
+});
+
+router.put('/blocks/:id/columns', requireAdmin, async (req, res) => {
+    const texts = Array.isArray(req.body.texts) ? req.body.texts : [];
+    try {
+        const block = await loadColumnsBlock(req.params.id);
+        if (!block) {
+            return res.status(404).json({ error: 'Блок не найден' });
+        }
+        const columns = block.columns.map((col, i) => ({ ...col, text: typeof texts[i] === 'string' ? texts[i] : col.text }));
+        await saveColumns(block.id, columns);
+        res.json({ blocks: await getBlocks() });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера при сохранении столбцов' });
+    }
+});
+
+router.post('/blocks/:id/columns/:col/media', requireAdmin, upload.single('media'), async (req, res) => {
+    const col = Number(req.params.col);
+    if (col !== 0 && col !== 1) {
+        return res.status(400).json({ error: 'Некорректный номер столбца' });
+    }
+    if (!req.file) {
+        return res.status(400).json({ error: 'Файл не был загружен' });
+    }
+
+    try {
+        const block = await loadColumnsBlock(req.params.id);
+        if (!block) {
+            return res.status(404).json({ error: 'Блок не найден' });
+        }
+        const { url, type } = await saveMediaFile(req.file);
+        removeUploadedFile(block.columns[col].mediaUrl);
+        block.columns[col] = { ...block.columns[col], mediaUrl: url, mediaType: type };
+        await saveColumns(block.id, block.columns);
+        res.json({ blocks: await getBlocks() });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера при загрузке медиа в столбец' });
+    }
+});
+
+router.delete('/blocks/:id/columns/:col/media', requireAdmin, async (req, res) => {
+    const col = Number(req.params.col);
+    if (col !== 0 && col !== 1) {
+        return res.status(400).json({ error: 'Некорректный номер столбца' });
+    }
+
+    try {
+        const block = await loadColumnsBlock(req.params.id);
+        if (!block) {
+            return res.status(404).json({ error: 'Блок не найден' });
+        }
+        removeUploadedFile(block.columns[col].mediaUrl);
+        block.columns[col] = { ...block.columns[col], mediaUrl: null, mediaType: null };
+        await saveColumns(block.id, block.columns);
+        res.json({ blocks: await getBlocks() });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера при удалении медиа из столбца' });
+    }
+});
+
 router.delete('/blocks/:id', requireAdmin, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM home_blocks WHERE id = $1 RETURNING type, content', [req.params.id]);
@@ -109,9 +216,10 @@ router.delete('/blocks/:id', requireAdmin, async (req, res) => {
         }
 
         const block = result.rows[0];
-        if (block.type !== 'text') {
-            const filePath = path.join(UPLOAD_DIR, path.basename(block.content));
-            fs.unlink(filePath, () => {});
+        if (block.type === 'columns') {
+            parseColumns(block.content).forEach((col) => removeUploadedFile(col.mediaUrl));
+        } else if (block.type !== 'text') {
+            removeUploadedFile(block.content);
         }
 
         res.json({ blocks: await getBlocks() });
